@@ -8,18 +8,108 @@ output:
 
 ## Loading and preprocessing the data
 
-
+```{r, echo=TRUE}
+path="D:/CAROLINA/Personal/Online Coursera Courses/Reproducible Research/"
+library(doBy)
+file_name=paste(path,"activity.csv",sep="")
+data=read.csv(file_name,sep=",")
+data[,1]=data[,1]+0
+data[,2]=as.Date(data[,2])
+```
 
 ## What is mean total number of steps taken per day?
+1. Calculation of total number of steps , the mean and the median per day:
+```{r, echo=TRUE}
+valid_data=data[which(data[,1]>=0),]
+
+agg_data_date=summaryBy(steps ~ date, valid_data, 
+          FUN = list(sum,mean, median))
+agg_data_date
+```
+2. Histogram of the total number of steps:
+
+```{r, echo=TRUE}
+hist(agg_data_date[,2], breaks=20)
+```
+
+3. Mean and median of the total number of steps per day:
+```{r, echo=TRUE}
+mean(agg_data_date[,2])
+median(agg_data_date[,2])
+```
 
 
 
 ## What is the average daily activity pattern?
+1. Average number of steps taken each 5-minutes. Time series plot
+```{r, echo=TRUE}
+agg_data_interval=summaryBy(steps ~ interval, valid_data, 
+          FUN = list(sum,mean, median))
+plot(agg_data_interval[,1],agg_data_interval[,3],"l", xlab="5-minutes interval", ylab="Average number steps/interval")
+```
+
+2. Which interval on average has the maximum number of steps?
+```{r, echo=TRUE}
+agg_data_interval[which.max(agg_data_interval[,3]),]
+
+```
+Answer: The interval of 8:35
+
+
 
 
 
 ## Imputing missing values
 
+1. Calculate and report the total number of missing values in the dataset
+
+
+```{r, echo=TRUE}
+pos_valid=which(data[,1]>=0)
+number_NA=length(data[,1])-length(pos_valid)
+number_NA
+```
+2. strategy for filling in all of the missing values in the dataset.
+```{r, echo=TRUE}
+missing_data=data[-pos_valid,]
+total_intervals=length(agg_data_interval[,1])
+for(i in 1:total_intervals){
+  pos_interval=which(missing_data$interval==agg_data_interval[i,1])
+  if (length(pos_interval)>0){
+    missing_data[pos_interval,1]=rep(agg_data_interval[i,3],length(pos_interval))
+    
+  }
+}
+```
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r, echo=TRUE}
+data_new=rbind(missing_data,valid_data)
+```
+
+4.Histogram of total number of steps taken per day. Mean and median of total number taken per day.
+```{r, echo=TRUE}
+agg_data_new_date=summaryBy(steps ~ date, data_new, 
+          FUN = list(sum,mean, median))
+hist(agg_data_new_date[,2],breaks=20)
+mean(agg_data_new_date[,2])
+median(agg_data_new_date[,2])
+
+```
+
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+1. Creation of Factor variable
+```{r, echo=TRUE}
+library(timeDate)
+day=isWeekday(data_new$date)
+data_weekday=data_new[day==TRUE,]
+data_weekend=data_new[day==FALSE,]
+agg_data_weekday=summaryBy(steps ~ interval, data_weekday, 
+          FUN = list(sum,mean, median))
+agg_data_weekend=summaryBy(steps ~ interval, data_weekend, 
+          FUN = list(sum,mean, median))
+
+plot(agg_data_weekday[,1],agg_data_weekday[,2],"l")
+plot(agg_data_weekend[,1],agg_data_weekend[,2],"l")
+```
